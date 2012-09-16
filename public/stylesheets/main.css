@@ -1,0 +1,11 @@
+#add-book-form {
+	text-align: right;
+}
+
+#save-rental-form {
+	text-align: center;
+}
+
+.hidden {
+	display: none;
+}

@@ -1,0 +1,212 @@
+@script = {	
+	<script id="newRowTmpl" type="text/template">
+		<tr>
+			<td>{{isbn}}</td>
+			<td>{{name}}</td>
+			<td></td>
+			<td>0</td>
+			<td><a name="book-remove-button" class="btn btn-danger" href="#"><i class="icon-minus-sign icon-white"></i></a></td>
+		</tr>
+	</script>
+	
+	<script id="oldRowTmpl" type="text/template">
+		<tr>
+			<td>{{isbn}}</td>
+			<td>{{name}}</td>
+			<td></td>
+			<td>0</td>
+			<td><a name="book-remove-button" class="btn btn-danger" href="#">Return</a></td>
+		</tr>
+	</script>
+	
+	<script type="text/javascript">
+		var newRowTmpl = $("#newRowTmpl").text();
+		var oldRowTmpl = $("#oldRowTmpl").text();
+	
+		$("#create-user-button").click(function () {
+			var createButton = $(this);
+			createButton.button('loading');
+			$.ajax({
+				type: "POST",
+				url: "/createUser",
+				data: $("#create-user-form").serialize(),
+				complete: function() {
+					createButton.button('reset');
+				},
+				success: function(data) {
+					if (data.status) {
+						var createUserModal = $("#create-user-model");
+						createUserModal.on("hidden", function() {
+							var dismissButton = "<a class='close' data-dismiss='alert' href='#'>&times;</a>"
+							var successMessage = "User have been created.";
+							var successString = "<div class='alert alert-success'>" + dismissButton + successMessage + "</div>";
+							
+							$("#alert-box").html(successString);							
+						});
+						createUserModal.modal("hide");						
+					}
+					else {
+						var errorMessage = "";
+						for(field in data.error) {
+							var errorText = data.error[field];
+							errorMessage = field + " " + errorText + "<br/>";
+						}
+						
+						var errorString = "<div class='alert alert-error'>" + errorMessage + "</div>";
+						$("#error-box").html(errorString);
+					}
+				}
+			});
+		});
+		
+		$("#find-user-button").click(function() {
+			var findUserButton = $(this);
+			var rentalTable = $("#rental-list tbody");
+			findUserButton.button('loading');
+			$.ajax({
+				url: "user/" + $("#user-id-text").val(),				
+				success: function(data) {
+					if (data.status && data.output) {
+						$("#user-name-text").html(data.output.name);
+						$("#rental-panel").removeClass("hidden");
+						
+						$.ajax({
+							url: "/user/" + data.output.id + "/rental",
+							complete: function() {
+								findUserButton.button('reset');
+							},
+							success: function(data) {
+								if (data.status) {
+									rentalTable.html("");
+									var rentalList = data.output;
+									for (var index = 0; index < rentalList.length; index++) {
+										var rental = rentalList[index];
+										var row = Mustache.render(oldRowTmpl, rental);
+										rentalTable.append(row);
+									}
+								}
+							}
+						})
+						//$("#user-name-span").html("User : " + data.output.name);
+					}
+				}
+			});
+		});
+		
+		$("#rent-book-button").click(function() {			
+			var rentBookButton = $(this);
+			rentBookButton.button('loading');
+			$.ajax({
+				type: "GET",
+				url: "/book/" + $("#book-id-text").val(),
+				complete: function() {
+					rentBookButton.button('reset');
+				},
+				success: function(data) {
+					if (data.status) {
+						var row = Mustache.render(newRowTmpl, data.output);
+						$("#rental-list tbody").append(row);
+					}
+					else {						
+						var errorString = "<div class='alert alert-error'>" + data.error + "</div>";
+						$("#alert-box").html(errorString);
+					}
+				}
+			});
+		});
+		
+		$("a[name=book-remove-button]").live("click", function() {			
+			if (confirm("Do you really want to deleted?")) {
+				$(this).parent().parent().remove();
+			}
+		});
+		
+		$("#save-button").click(function() {
+			var createButton = $(this);
+			createButton.button('loading');
+			
+			var formData = {};
+			formData.userId = $("#user-id-text").val();
+			formData.bookList = {};
+			
+			$("#rental-list tbody tr td:first-child").each(function (index, element) {			
+				formData.bookList[index] = $(element).text();				
+			});						
+			
+			$.ajax({
+				type: "POST",
+				url: "/user/rental",
+				data: $.param(formData),				
+				
+				complete: function() {
+					createButton.button('reset');
+				},
+				
+				success: function(data) {
+					
+				}
+			});
+		}); 
+	</script>
+}
+
+@main("Rent Book", script) {
+	<div class="well">
+		<div class="input-append">
+			<label for="user-id-text" class="add-on">ID</label>
+			<input type="text" id="user-id-text" placeholder="Student ID or Teacher ID"/>
+			<a id="find-user-button" class="btn btn-primary" href="#"><i class="icon-search icon-white"></i></a>
+		</div>
+		<span id="user-name-text"></span><br/>									
+		<a href="#" data-toggle="modal" data-target="#create-user-model">Don't have user yet?</a><br/>		
+	</div>	
+	<div id="rental-panel" class="hidden">
+		<form id="add-book-form">
+			<div class="input-append">
+				<span class="error"></span>			
+				<span class="add-on">Book ID</span>
+				<input id="book-id-text" type="text" class="span2">		
+				<a id="rent-book-button" class="btn btn-primary" href="#"><i class="icon-plus-sign icon-white"></i></a>
+			</div>		
+		</form>
+		
+		<table id="rental-list" class="table table-bordered">
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Name</th>
+					<th>Return date</th>
+					<th>Fine</th>
+					<th>Action</th>				
+				</tr>			
+			</thead>
+			<tbody>
+			</tbody>
+		</table>
+		
+		<form id="save-rental-form" class="well">
+			<a id="save-button" class="btn btn-primary" href="#">Save</a>
+			<a id="clear-button" class="btn" href="#">Clear</a>
+		</form>
+	</div>	
+	<div id="create-user-model" class="modal hide fade">
+		<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+			<h3>Create User</h3>
+		</div>
+		<div class="modal-body">
+			<form id="create-user-form">
+				<label>ID</label>
+				<input type="text" name="id" placeholder="Example, Student Id"/>
+				
+				<label>Name</label>
+				<input type="text" name="name" placeholder="Fullname"/>
+			</form>
+			<div id="error-box"></div>
+		</div>
+		<div class="modal-footer">
+			<a href="#" data-dismiss="modal" aria-hidden="true" class="btn">Close</a>
+			<a href="#" id="create-user-button" class="btn btn-primary" data-loading-text="Creating user..." autocomplete="off">Create</a>
+		</div>
+	</div>
+}

@@ -1,0 +1,10 @@
+@(userForm: Form[User])
+
+@import helper.twitterBootstrap._
+
+@main("Create user") {
+	@helper.form(action = routes.Application.createUser()) {
+		@helper.inputText(userForm("id"))
+		@helper.inputText(userForm("name"))
+	}
+}
