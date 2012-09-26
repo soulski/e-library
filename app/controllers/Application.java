@@ -1,6 +1,8 @@
 package controllers;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -24,6 +26,7 @@ import play.libs.Json;
 import play.mvc.*;
 
 import views.html.*;
+import views.html.play20.book;
 
 public class Application extends Controller {
   
@@ -95,7 +98,7 @@ public class Application extends Controller {
 		List<RentalForm> output = new ArrayList<RentalForm>();
 		for (Rental rental : rentalList) {
 			RentalForm form = new RentalForm();			
-			
+			form.id = rental.book.id;
 			form.isbn = rental.book.isbn;
 			form.name = rental.book.name;	
 			output.add(form);
@@ -104,6 +107,41 @@ public class Application extends Controller {
 		result.put("status", true);
 		result.put("output", Json.toJson(output));
 		return ok(result);
+	}
+	
+	public static Result returnBook(String userId, Long bookId) {
+		ObjectNode result = Json.newObject();		
+		Rental rental = Rental.find.where()
+				.eq("user_id", userId)
+				.eq("book.id", bookId)
+				.eq("status", RentalStatus.RENTAL)
+				.findUnique();
+		
+		Logger.debug("test retrun book");
+		
+		if (rental != null) {
+			Ebean.beginTransaction();
+			
+			rental.status = RentalStatus.RETURN;
+			rental.returnDate = new Date();
+			Ebean.update(rental);
+			
+			Book book = rental.book;
+			book.status = BookStatus.AVAILABLE;
+			Ebean.update(book);
+			
+			Ebean.commitTransaction();
+			Ebean.endTransaction();
+			
+			result.put("status", true);
+			return ok(result);
+		}		
+		else {
+			result.put("status", false);
+			result.put("error", "Rental not found!");
+			return ok(result);
+		}
+		
 	}
 	
 	public static Result saveRental() {	
@@ -125,20 +163,30 @@ public class Application extends Controller {
 		
 		Ebean.beginTransaction();
 		
+		List<RentalForm> output = new ArrayList<RentalForm>();
+		
 		for (Book book : bookList) {	
 			if (!user.containBook(book.isbn)) {
 				Rental rental = new Rental(book);			
 				user.rentals.add(rental);
 				book.status = BookStatus.RENT;
 				Ebean.update(book);
+				
+				RentalForm form = new RentalForm();			
+				form.id = book.id;
+				form.isbn = book.isbn;
+				form.name = book.name;	
+				output.add(form);
 			}						
 		}
 		
 		Ebean.update(user);
 		Ebean.commitTransaction();
-		Ebean.endTransaction();
+		Ebean.endTransaction();		
 		
-		return ok();
+		result.put("status", true);
+		result.put("output", Json.toJson(output));
+		return ok(result);
 		
 	}
   

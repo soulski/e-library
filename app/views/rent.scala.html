@@ -3,8 +3,6 @@
 		<tr>
 			<td>{{isbn}}</td>
 			<td>{{name}}</td>
-			<td></td>
-			<td>0</td>
 			<td><a name="book-remove-button" class="btn btn-danger" href="#"><i class="icon-minus-sign icon-white"></i></a></td>
 		</tr>
 	</script>
@@ -15,7 +13,10 @@
 			<td>{{name}}</td>
 			<td></td>
 			<td>0</td>
-			<td><a name="book-remove-button" class="btn btn-danger" href="#">Return</a></td>
+			<td>
+				<a name="book-return-button" class="btn btn-danger" href="#">Return</a>
+				<input type="hidden" name="book-id" value="{{id}}"/>
+			</td>
 		</tr>
 	</script>
 	
@@ -61,14 +62,17 @@
 		
 		$("#find-user-button").click(function() {
 			var findUserButton = $(this);
-			var rentalTable = $("#rental-list tbody");
+			var rentalTable = $("#holding-list tbody");
 			findUserButton.button('loading');
 			$.ajax({
 				url: "user/" + $("#user-id-text").val(),				
 				success: function(data) {
 					if (data.status && data.output) {
-						$("#user-name-text").html(data.output.name);
+						$("#user-name-text").html(data.output.name + " (" + data.output.type + ")");
 						$("#rental-panel").removeClass("hidden");
+						
+						$("#rental-list tbody").html("");
+						$("#book-id-text").val("");
 						
 						$.ajax({
 							url: "/user/" + data.output.id + "/rental",
@@ -121,6 +125,31 @@
 			}
 		});
 		
+		$("a[name=book-return-button]").live("click", function() {
+			if (confirm("Do you really want to return this book?")) {				
+				var id = $(this).siblings("input[name='book-id']").val();				
+				var returnBookButton = $(this);
+				returnBookButton.button('loading');
+				
+				$.ajax({
+					type: "GET",
+					url: "/return/" + $("#user-id-text").val() + "/" + id,
+					complete: function() {
+						returnBookButton.button('reset');
+					},
+					success: function(data) {
+						if (data.status) {
+							returnBookButton.parent().parent().remove();
+						}	
+						else {						
+							var errorString = "<div class='alert alert-error'>" + data.error + "</div>";
+							$("#alert-box").html(errorString);
+						}
+					}
+				});
+			}
+		});
+		
 		$("#save-button").click(function() {
 			var createButton = $(this);
 			createButton.button('loading');
@@ -143,7 +172,16 @@
 				},
 				
 				success: function(data) {
+					var holdingTable = $("#holding-list tbody");					
+					var rentalList = data.output;
+					for (var index = 0; index < holdingTable.length; index++) {
+						var rental = rentalList[index];
+						var row = Mustache.render(oldRowTmpl, rental);
+						holdingTable.append(row);
+					}
 					
+					var rentalTable = $("#rental-list tbody");
+					rentalTable.html("");
 				}
 			});
 		}); 
@@ -160,23 +198,38 @@
 		<span id="user-name-text"></span><br/>									
 		<a href="#" data-toggle="modal" data-target="#create-user-model">Don't have user yet?</a><br/>		
 	</div>	
-	<div id="rental-panel" class="hidden">
-		<form id="add-book-form">
-			<div class="input-append">
-				<span class="error"></span>			
-				<span class="add-on">Book ID</span>
-				<input id="book-id-text" type="text" class="span2">		
-				<a id="rent-book-button" class="btn btn-primary" href="#"><i class="icon-plus-sign icon-white"></i></a>
-			</div>		
-		</form>
-		
-		<table id="rental-list" class="table table-bordered">
+	<div id="rental-panel" class="hidden">		
+		<div class="lead">Holding list</div>
+		<table id="holding-list" class="table table-bordered">
 			<thead>
 				<tr>
-					<th>ID</th>
+					<th>ISBN</th>
 					<th>Name</th>
 					<th>Return date</th>
 					<th>Fine</th>
+					<th>Action</th>				
+				</tr>			
+			</thead>
+			<tbody>
+			</tbody>
+		</table>		
+		
+		<div class="lead">
+			<span>Rental list</span>		
+			<form id="add-book-form" class="pull-right">
+				<div class="input-append">
+					<span class="error"></span>			
+					<span class="add-on">Book ID</span>
+					<input id="book-id-text" type="text" class="span2">		
+					<a id="rent-book-button" class="btn btn-primary" href="#"><i class="icon-plus-sign icon-white"></i></a>
+				</div>		
+			</form>
+		</div>		
+		<table id="rental-list" class="table table-bordered">
+			<thead>
+				<tr>
+					<th>ISBN</th>
+					<th>Name</th>
 					<th>Action</th>				
 				</tr>			
 			</thead>
@@ -201,6 +254,13 @@
 				
 				<label>Name</label>
 				<input type="text" name="name" placeholder="Fullname"/>
+				
+				<label>Status</label>
+				<select name="type">
+					<option selected="selected" value="STUDENT" >Student</option>
+					<option value="PROFESSOR">Professor</option>
+					<option value="EMPLOYEE">Employee</option>					
+				</select>
 			</form>
 			<div id="error-box"></div>
 		</div>

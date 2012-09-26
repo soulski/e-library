@@ -15,9 +15,11 @@ import com.avaje.ebean.annotation.EnumValue;
 public class Book extends Model {
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
-	public String id;
+	public Long id;
 	public String isbn;
-	public String name;	
+	public String name;
+	public String auther;
+	public int publishYear;
 	public BookStatus status;
 	public Date createDate;
 	

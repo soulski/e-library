@@ -4,9 +4,11 @@
 # --- !Ups
 
 create table book (
-  id                        varchar(255) not null,
+  id                        bigint auto_increment not null,
   isbn                      varchar(255),
   name                      varchar(255),
+  auther                    varchar(255),
+  publish_year              integer,
   status                    varchar(17),
   create_date               datetime,
   constraint ck_book_status check (status in ('BUYING_PROCESSING','RENEW','RENT','AVAILABLE')),
@@ -16,7 +18,7 @@ create table book (
 create table rental (
   id                        bigint auto_increment not null,
   user_id                   varchar(255) not null,
-  book_id                   varchar(255),
+  book_id                   bigint,
   rental_date               datetime,
   return_date               datetime,
   status                    varchar(6),
@@ -27,6 +29,8 @@ create table rental (
 create table user (
   id                        varchar(255) not null,
   name                      varchar(255),
+  type                      varchar(9),
+  constraint ck_user_type check (type in ('EMPLOYEE','STUDENT','PROFESSOR')),
   constraint pk_user primary key (id))
 ;
 

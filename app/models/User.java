@@ -9,6 +9,8 @@ import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 
+import com.avaje.ebean.annotation.EnumValue;
+
 import models.Rental.RentalStatus;
 
 import play.db.ebean.Model;
@@ -22,6 +24,7 @@ public class User extends Model {
 	public String name;
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	public List<Rental> rentals = new ArrayList<Rental>();
+	public UserType type;
 	
 	public static Finder<String, User> find = new Finder<String, User>(String.class, User.class);
 	
@@ -33,5 +36,14 @@ public class User extends Model {
 		}
 		
 		return false;
+	}
+	
+	public enum UserType {
+		@EnumValue("STUDENT")
+		STUDENT, 
+		@EnumValue("PROFESSOR")
+		PROFESSOR,
+		@EnumValue("EMPLOYEE")
+		EMPLOYEE
 	}
 }
