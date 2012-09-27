@@ -8,11 +8,11 @@
 	</script>
 	
 	<script id="oldRowTmpl" type="text/template">
-		<tr>
+		<tr class="{{^overDueDate}}error{{/overDueDate}}">
 			<td>{{isbn}}</td>
 			<td>{{name}}</td>
-			<td></td>
-			<td>0</td>
+			<td>{{returnDate}}</td>
+			<td>{{fine}} Bath</td>
 			<td>
 				<a name="book-return-button" class="btn btn-danger" href="#">Return</a>
 				<input type="hidden" name="book-id" value="{{id}}"/>
@@ -83,8 +83,18 @@
 								if (data.status) {
 									rentalTable.html("");
 									var rentalList = data.output;
+									var currentDate = new Date();
 									for (var index = 0; index < rentalList.length; index++) {
-										var rental = rentalList[index];
+										var rental = rentalList[index];							
+										var dueDate = new Date(rental.returnDate);
+										
+										var date = dueDate.getDate();
+									    var month = dueDate.getMonth() + 1; //Months are zero based
+									    var year = dueDate.getFullYear();
+									    
+									    rental.returnDate = date + "/" + month + "/" + year;
+									    rental.overDueDate = currentDate < dueDate;							 
+										
 										var row = Mustache.render(oldRowTmpl, rental);
 										rentalTable.append(row);
 									}
@@ -172,16 +182,22 @@
 				},
 				
 				success: function(data) {
-					var holdingTable = $("#holding-list tbody");					
-					var rentalList = data.output;
-					for (var index = 0; index < holdingTable.length; index++) {
-						var rental = rentalList[index];
-						var row = Mustache.render(oldRowTmpl, rental);
-						holdingTable.append(row);
+					if (data.status) {
+						var holdingTable = $("#holding-list tbody");					
+						var rentalList = data.output;
+						for (var index = 0; index < holdingTable.length; index++) {
+							var rental = rentalList[index];
+							var row = Mustache.render(oldRowTmpl, rental);
+							holdingTable.append(row);
+						}
+						
+						var rentalTable = $("#rental-list tbody");
+						rentalTable.html("");	
+					}		
+					else {
+						var errorString = "<div class='alert alert-error'>" + data.error + "</div>";
+						$("#alert-box").html(errorString);
 					}
-					
-					var rentalTable = $("#rental-list tbody");
-					rentalTable.html("");
 				}
 			});
 		}); 

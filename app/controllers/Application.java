@@ -91,6 +91,7 @@ public class Application extends Controller {
 		
 		Logger.debug("UserId : " + userId);
 		
+		User user = User.find.byId(userId);
 		List<Rental> rentalList = Rental.find.where().eq("user_id", userId).eq("status", RentalStatus.RENTAL).findList();
 		
 		Logger.debug("RentalList : " + rentalList);
@@ -100,7 +101,9 @@ public class Application extends Controller {
 			RentalForm form = new RentalForm();			
 			form.id = rental.book.id;
 			form.isbn = rental.book.isbn;
-			form.name = rental.book.name;	
+			form.name = rental.book.name;
+			form.returnDate = rental.getDueDate(user);
+			form.fine = rental.getFine(user);
 			output.add(form);
 		}
 		
@@ -167,16 +170,25 @@ public class Application extends Controller {
 		
 		for (Book book : bookList) {	
 			if (!user.containBook(book.isbn)) {
-				Rental rental = new Rental(book);			
-				user.rentals.add(rental);
-				book.status = BookStatus.RENT;
-				Ebean.update(book);
-				
-				RentalForm form = new RentalForm();			
-				form.id = book.id;
-				form.isbn = book.isbn;
-				form.name = book.name;	
-				output.add(form);
+				Rental rental = new Rental(book);	
+				if (user.rentBook(rental)) {
+					book.status = BookStatus.RENT;
+					Ebean.update(book);
+					
+					RentalForm form = new RentalForm();			
+					form.id = book.id;
+					form.isbn = book.isbn;
+					form.name = book.name;	
+					output.add(form);
+				}				
+				else {
+					Ebean.rollbackTransaction();
+					Ebean.endTransaction();
+					
+					result.put("status", false);
+					result.put("error", "User rent book over limit");
+					return ok(result);
+				}
 			}						
 		}
 		

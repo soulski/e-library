@@ -10,9 +10,11 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 
 import com.avaje.ebean.annotation.EnumValue;
+import com.avaje.ebean.annotation.Where;
 
 import models.Rental.RentalStatus;
 
+import play.Logger;
 import play.db.ebean.Model;
 import play.data.validation.Constraints;
 
@@ -23,6 +25,7 @@ public class User extends Model {
 	@Constraints.Required
 	public String name;
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	@Where(clause = "status = 'RENTAL'")
 	public List<Rental> rentals = new ArrayList<Rental>();
 	public UserType type;
 	
@@ -36,6 +39,19 @@ public class User extends Model {
 		}
 		
 		return false;
+	}
+	
+	public boolean rentBook(Rental rental) {
+		Logger.debug("User type : " + type.toString());
+		Logger.debug("size type : " + rentals.size());		
+		if (type.equals(UserType.STUDENT) && rentals.size() >= 3) {			
+			return false;
+		}
+		if (type == UserType.EMPLOYEE && rentals.size() >= 5) {
+			return false;
+		}
+		
+		return rentals.add(rental);
 	}
 	
 	public enum UserType {
