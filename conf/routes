@@ -5,6 +5,7 @@
 # Home page
 GET     /                           controllers.Application.index()
 GET     /rent                       controllers.Application.rent()
+GET		/search						controllers.Application.search()
 POST	/createUser					controllers.Application.createUser()
 GET		/user/:keyword				controllers.Application.findUser(keyword: String)
 GET		/book/:isbn					controllers.Application.findBookByIsbn(isbn: String)

@@ -201,5 +201,9 @@ public class Application extends Controller {
 		return ok(result);
 		
 	}
+	
+	public static Result search() {
+		return ok(search.render());
+	}
   
 }
